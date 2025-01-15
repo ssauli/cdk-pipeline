@@ -1,14 +1,48 @@
-# Welcome to your CDK TypeScript project
+# AWS CDK Multi-account pipeline
 
-This is a blank project for CDK development with TypeScript.
+Demo of AWS CDK that deploys a Codepipeline to "deploy" account that publishes a S3 bucket and a Lambda function to "staging" account.
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+## Prerequisites
+- Two AWS Accounts
 
-## Useful commands
+## How to deploy 
 
-- `npm run build` compile typescript to js
-- `npm run watch` watch for changes and compile
-- `npm run test` perform the jest unit tests
-- `npx cdk deploy` deploy this stack to your default AWS account/region
-- `npx cdk diff` compare deployed stack with current state
-- `npx cdk synth` emits the synthesized CloudFormation template
+### Setup repository
+Fork this github repo
+Generate Github token "classic" with "repo" and "admin:repo_hook" scopes to your repo
+In your AWS "deploy" account's Management Console, go to Secrets Manager service and create a secret named 'github-token' with your github token as value. This allows pipeline to be notified of new commits and will trigger the pipeline to deploy the latest changes.
+
+### Bootstrapping
+Bootstrap AWS CDK on both accounts (creates base resources needed for CDK to deploy your CDK app):
+
+Use "deploy" account credentials to run the following command:
+`cdk bootstrap` 
+
+Use "staging" account credentials to run the following command to allow deploy account to create stacks to it:
+`cdk bootstrap --trust <deploy-account-id> --trust-for-lookup <deploy-account-id> --cloudformation-execution-policies arn:aws:iam::aws:policy/AdministratorAccess`
+
+### Deployment
+
+Make a copy of .env.example to a new file named .env in your project and fill in the values inside
+
+Using "deploy" account credentials, run:
+`cdk deploy`
+The codepipeline will be deployed.
+
+#### Environment Variables
+In "deploy" account's Management Console, go to:
+
+> Codebuild
+ > Build Projects
+  > PipelineBuildSynthCdk...
+   > Edit
+    > Environment
+     > Additional configuration
+      > Environment variables
+
+Set environment variable:
+Name: STG_ACCOUNT_ID
+Value: <your-staging-account-id>
+Type: Plaintext
+    
+After adding the environment variable, in "deploy" account's management console, go to CodePipeline service and "Release Change" on your pipeline. 
