@@ -18,14 +18,17 @@ export class CdkPipelineStack extends Stack {
     super(scope, id, props);
 
     const stgAccountId = process.env.STG_ACCOUNT_ID;
+    const username = process.env.GITHUB_USERNAME;
+    const repositoryName = process.env.GITHUB_REPOSITORY_NAME;
+    const branchName = process.env.GITHUB_BRANCH_NAME as string;
 
     const pipeline = new pipelines.CodePipeline(this, 'Pipeline', {
       pipelineName: 'CdkPipeline',
       crossAccountKeys: true,
       synth: new pipelines.ShellStep('Synth', {
         input: pipelines.CodePipelineSource.gitHub(
-          'ssauli/cdk-pipeline',
-          'main',
+          `${username}/${repositoryName}`,
+          branchName,
           { authentication: SecretValue.secretsManager('github-token') },
         ),
         commands: ['npm ci', 'npm run build', 'npx cdk synth'],
