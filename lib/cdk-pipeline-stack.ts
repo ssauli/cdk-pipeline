@@ -32,6 +32,13 @@ export class CdkPipelineStack extends Stack {
 class LambdaStage extends Stage {
   constructor(scope: Construct, id: string, props?: StageProps) {
     super(scope, id, props);
+    new LambdaStack(this, 'LambdaStack');
+  }
+}
+
+class LambdaStack extends Stack {
+  constructor(scope: Construct, id: string, props?: StageProps) {
+    super(scope, id, props);
     new Function(this, 'HelloHandler', {
       runtime: Runtime.NODEJS_20_X,
       code: Code.fromAsset('lambda'),
