@@ -42,7 +42,7 @@ export class CdkPipelineStack extends Stack {
 class ApplicationStage extends Stage {
   constructor(scope: Construct, id: string, props?: StageProps) {
     super(scope, id, props);
-    new ApplicationStack(this, 'ApplicationStack');
+    new ApplicationStack(this, 'ApplicationStack', { env: props?.env });
   }
 }
 
