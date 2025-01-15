@@ -1,53 +1,82 @@
-# AWS CDK Multi-account pipeline
 
-***
+# AWS CDK Multi-Account Pipeline
 
-Demo of AWS CDK that deploys a Codepipeline to "deploy" account that publishes a S3 bucket and a Lambda function to "staging" account.
+A demo AWS CDK project that deploys a CodePipeline in the **deploy** account, which publishes an S3 bucket and a Lambda function to the **staging** account.
+
 
 ## Prerequisites
 
-- Two AWS Accounts
+- Two AWS accounts: 
+  - **Deploy account** (to host the pipeline)
+  - **Staging account** (to deploy the resources)
 
-## How to deploy 
 
-### Setup repository
+## How to Deploy
 
-Fork this github repo
+### 1. Setup the Repository
 
-Generate Github token "classic" with `repo` and `admin:repo_hook` scopes to your repo
+1. **Fork this GitHub repository**.
 
-In your AWS "deploy" account's Management Console, go to Secrets Manager service and create a secret named `github-token` with your github token as value. This allows pipeline to be notified of new commits and will trigger the pipeline to deploy the latest changes.
+2. **Generate a GitHub token**:
+   - Go to [GitHub Developer Settings](https://github.com/settings/tokens).
+   - Generate a "classic" token with the following scopes:
+     - `repo`
+     - `admin:repo_hook`
 
-### Bootstrapping
+3. **Store the GitHub token** in AWS Secrets Manager:
+   - Use the **deploy account's Management Console**.
+   - Navigate to **Secrets Manager**.
+   - Create a secret with:
+     - **Name**: `github-token`
+     - **Value**: your GitHub token.
+   - This allows the pipeline to be notified of new commits and trigger deployments.
 
-Bootstrap AWS CDK on both accounts (creates base resources needed for CDK to deploy your CDK app):
+---
 
-Use "deploy" account credentials to run the following command:
+### 2. Bootstrap AWS CDK
 
-`cdk bootstrap` 
+#### Deploy Account
+Run the following command with your **deploy account credentials**:
+```bash
+cdk bootstrap
+```
 
-Use "staging" account credentials to run the following command to allow deploy account to create stacks to it:
+#### Staging Account
+Run the following command with your **staging account credentials**:
+```bash
+cdk bootstrap --trust <deploy-account-id> \
+  --trust-for-lookup <deploy-account-id> \
+  --cloudformation-execution-policies arn:aws:iam::aws:policy/AdministratorAccess
+```
+This allows the deploy account to create stacks in the staging account.
 
-`cdk bootstrap --trust <deploy-account-id> --trust-for-lookup <deploy-account-id> --cloudformation-execution-policies arn:aws:iam::aws:policy/AdministratorAccess`
+---
 
-### Deployment
+### 3. Deployment
 
-Make a copy of .env.example to a new file named `.env` in your project and fill in the values inside
+#### Create the `.env` File
+Copy `.env.example` to a new file named `.env` and fill in the required values.
 
-Using "deploy" account credentials, run the following command to deploy the pipeline:
+#### Deploy the Pipeline
+Run the following command with your **deploy account credentials**:
+```bash
+cdk deploy
+```
 
-`cdk deploy`
+### Configure Environment Variables for the Pipeline
+1. Go to **AWS Management Console** (in the deploy account):
+   - Navigate to **CodeBuild** > **Build Projects**.
+   - Select your build project (e.g., `PipelineBuildSynthCdk...`).
+   - Click **Edit** > **Environment** > **Additional Configuration** > **Environment Variables**.
 
-#### Environment Variables
+2. Add the following environment variable:
+   - **Name**: `STG_ACCOUNT_ID`
+   - **Value**: `<your-staging-account-id>`
+   - **Type**: Plaintext
 
-In "deploy" account's Management Console, go to:
+### Trigger the Pipeline
+After adding the environment variable:
+1. Go to **CodePipeline** in the AWS Management Console (deploy account).
+2. Select your pipeline and click **Release Change** to deploy your app to staging account.
 
-Codebuild > Build Projects > PipelineBuildSynthCdk... > Edit > Environment > Additional configuration > Environment variables
-
-Set environment variable:
-
-> Name: STG_ACCOUNT_ID
-> Value: <your-staging-account-id>
-> Type: Plaintext
-    
-After adding the environment variable, in "deploy" account's management console, go to CodePipeline service and "Release Change" on your pipeline. 
+The pipeline is now set up and whenever a new commit is made to your branch, the changes will be deployed to staging account!
