@@ -16,7 +16,10 @@ export class CdkPipelineStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
+    const stgAccountId = process.env.STG_ACCOUNT_ID || undefined;
+
     const pipeline = new pipelines.CodePipeline(this, 'Pipeline', {
+      pipelineName: 'CdkPipeline',
       synth: new pipelines.ShellStep('Synth', {
         input: pipelines.CodePipelineSource.gitHub(
           'ssauli/cdk-pipeline',
@@ -27,8 +30,11 @@ export class CdkPipelineStack extends Stack {
       }),
     });
 
-    const lambdaStage = new ApplicationStage(this, 'ApplicationStage');
-    pipeline.addStage(lambdaStage);
+    const applicationStage = new ApplicationStage(this, 'ApplicationStage', {
+      env: { account: stgAccountId },
+    });
+
+    pipeline.addStage(applicationStage);
   }
 }
 
