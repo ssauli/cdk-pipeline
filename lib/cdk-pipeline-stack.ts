@@ -1,5 +1,6 @@
 import {
   pipelines,
+  RemovalPolicy,
   SecretValue,
   Stack,
   StackProps,
@@ -16,7 +17,7 @@ export class CdkPipelineStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    const stgAccountId = process.env.STG_ACCOUNT_ID || undefined;
+    const stgAccountId = process.env.STG_ACCOUNT_ID;
 
     const pipeline = new pipelines.CodePipeline(this, 'Pipeline', {
       pipelineName: 'CdkPipeline',
@@ -31,11 +32,17 @@ export class CdkPipelineStack extends Stack {
       }),
     });
 
-    const applicationStage = new ApplicationStage(this, 'ApplicationStage', {
-      env: { account: stgAccountId, region: process.env.AWS_DEFAULT_REGION },
-    });
+    if (stgAccountId) {
+      const applicationStage = new ApplicationStage(this, 'ApplicationStage', {
+        env: { account: stgAccountId, region: process.env.AWS_DEFAULT_REGION },
+      });
 
-    pipeline.addStage(applicationStage);
+      pipeline.addStage(applicationStage);
+    } else {
+      console.log(
+        'Skipping ApplicationStage deployment because STG_ACCOUNT_ID is not defined',
+      );
+    }
   }
 }
 
@@ -50,7 +57,9 @@ class ApplicationStack extends Stack {
   constructor(scope: Construct, id: string, props?: StageProps) {
     super(scope, id, props);
 
-    const bucket = new Bucket(this, 'HelloBucket', {});
+    const bucket = new Bucket(this, 'HelloBucket', {
+      removalPolicy: RemovalPolicy.DESTROY, // not a good idea for production workloads
+    });
 
     const fn = new Function(this, 'HelloHandler', {
       runtime: Runtime.NODEJS_20_X,
