@@ -1,4 +1,11 @@
-import { pipelines, SecretValue, Stack, StackProps } from 'aws-cdk-lib';
+import {
+  pipelines,
+  SecretValue,
+  Stack,
+  StackProps,
+  Stage,
+  StageProps,
+} from 'aws-cdk-lib';
 import { Code, Function, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
 
@@ -17,7 +24,15 @@ export class CdkPipelineStack extends Stack {
       }),
     });
 
-    const hello = new Function(this, 'HelloHandler', {
+    const lambdaStage = new LambdaStage(this, 'LambdaStage');
+    pipeline.addStage(lambdaStage);
+  }
+}
+
+class LambdaStage extends Stage {
+  constructor(scope: Construct, id: string, props?: StageProps) {
+    super(scope, id, props);
+    new Function(this, 'HelloHandler', {
       runtime: Runtime.NODEJS_20_X,
       code: Code.fromAsset('lambda'),
       handler: 'hello.handler',
