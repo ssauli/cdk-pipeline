@@ -31,7 +31,7 @@ export class CdkPipelineStack extends Stack {
     });
 
     const applicationStage = new ApplicationStage(this, 'ApplicationStage', {
-      env: { account: stgAccountId },
+      env: { account: stgAccountId, region: process.env.AWS_DEFAULT_REGION },
     });
 
     pipeline.addStage(applicationStage);
