@@ -20,6 +20,7 @@ export class CdkPipelineStack extends Stack {
 
     const pipeline = new pipelines.CodePipeline(this, 'Pipeline', {
       pipelineName: 'CdkPipeline',
+      crossAccountKeys: true,
       synth: new pipelines.ShellStep('Synth', {
         input: pipelines.CodePipelineSource.gitHub(
           'ssauli/cdk-pipeline',
