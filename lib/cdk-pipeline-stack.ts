@@ -6,7 +6,10 @@ import {
   Stage,
   StageProps,
 } from 'aws-cdk-lib';
+import { ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Code, Function, Runtime } from 'aws-cdk-lib/aws-lambda';
+import { Bucket, EventType } from 'aws-cdk-lib/aws-s3';
+import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
 import { Construct } from 'constructs';
 
 export class CdkPipelineStack extends Stack {
@@ -24,25 +27,38 @@ export class CdkPipelineStack extends Stack {
       }),
     });
 
-    const lambdaStage = new LambdaStage(this, 'LambdaStage');
+    const lambdaStage = new ApplicationStage(this, 'ApplicationStage');
     pipeline.addStage(lambdaStage);
   }
 }
 
-class LambdaStage extends Stage {
+class ApplicationStage extends Stage {
   constructor(scope: Construct, id: string, props?: StageProps) {
     super(scope, id, props);
-    new LambdaStack(this, 'LambdaStack');
+    new ApplicationStack(this, 'ApplicationStack');
   }
 }
 
-class LambdaStack extends Stack {
+class ApplicationStack extends Stack {
   constructor(scope: Construct, id: string, props?: StageProps) {
     super(scope, id, props);
-    new Function(this, 'HelloHandler', {
+
+    const bucket = new Bucket(this, 'HelloBucket', {});
+
+    const fn = new Function(this, 'HelloHandler', {
       runtime: Runtime.NODEJS_20_X,
       code: Code.fromAsset('lambda'),
       handler: 'hello.handler',
+    });
+
+    bucket.grantRead(fn);
+    bucket.addEventNotification(
+      EventType.OBJECT_CREATED,
+      new LambdaDestination(fn),
+    );
+    fn.addPermission('AllowS3Invoke', {
+      principal: new ServicePrincipal('s3.amazonaws.com'),
+      sourceArn: bucket.bucketArn,
     });
   }
 }
